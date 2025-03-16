@@ -4,9 +4,6 @@ Nextjs quickstart for to generating and editing images with Google Gemini 2.0 Fl
 
 Get your `GEMINI_API_KEY` key [here](https://ai.google.dev/gemini-api/docs/api-key) and start building. 
 
-
-[![Watch the video](./assets/thumbnail.jpg)](./assets/demo.mov)
-
 **How It Works:**
 
 1. **Create Images**: Generate images from text prompts using Gemini 2.0 Flash
