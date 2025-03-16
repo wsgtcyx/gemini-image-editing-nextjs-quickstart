@@ -1,8 +1,8 @@
 # Gemini 2.0 Flash Image Generation and Editing
 
-Nextjs quickstart for to generating and editing images with Google Gemini 2.0 Flash. It allows users to generate images from text prompts or edit existing images through natural language instructions, maintaining conversation context for iterative refinements.
+Nextjs quickstart for to generating and editing images with Google Gemini 2.0 Flash. It allows users to generate images from text prompts or edit existing images through natural language instructions, maintaining conversation context for iterative refinements. Try out the hosted demo at [Hugging Face Spaces](https://huggingface.co/spaces/philschmid/image-generation-editing).
 
-Get your `GEMINI_API_KEY` key [here](https://ai.google.dev/gemini-api/docs/api-key).
+Get your `GEMINI_API_KEY` key [here](https://ai.google.dev/gemini-api/docs/api-key) and start building. 
 
 **How It Works:**
 
