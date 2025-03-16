@@ -1,6 +1,6 @@
-# Image Creation & Editing with Next.js and Gemini 2.0 Flash
+# Gemini 2.0 Flash Image Generation and Editing
 
-This project demonstrates how to create and edit images using Google's Gemini 2.0 Flash AI model in a Next.js web application. It allows users to generate images from text prompts or edit existing images through natural language instructions, maintaining conversation context for iterative refinements.
+Nextjs quickstart for to generating and editing images with Google Gemini 2.0 Flash. It allows users to generate images from text prompts or edit existing images through natural language instructions, maintaining conversation context for iterative refinements.
 
 Get your `GEMINI_API_KEY` key [here](https://ai.google.dev/gemini-api/docs/api-key).
 
