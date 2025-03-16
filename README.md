@@ -2,12 +2,56 @@
 
 This project demonstrates how to create and edit images using Google's Gemini 2.0 Flash AI model in a Next.js web application. It allows users to generate images from text prompts or edit existing images through natural language instructions, maintaining conversation context for iterative refinements.
 
+Get your `GEMINI_API_KEY` key [here](https://ai.google.dev/gemini-api/docs/api-key).
+
 **How It Works:**
 
 1. **Create Images**: Generate images from text prompts using Gemini 2.0 Flash
 2. **Edit Images**: Upload an image and provide instructions to modify it
 3. **Conversation History**: Maintain context through a conversation with the AI for iterative refinements
 4. **Download Results**: Save your generated or edited images
+
+## Basic request 
+
+For developers who want to call the Gemini API directly, you can use the Google Generative AI JavaScript SDK:
+
+```javascript
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fs = require("fs");
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+async function generateImage() {
+  const contents = "Hi, can you create a 3d rendered image of a pig " +
+                  "with wings and a top hat flying over a happy " +
+                  "futuristic scifi city with lots of greenery?";
+
+  // Set responseModalities to include "Image" so the model can generate 
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash-exp",
+    generationConfig: {
+        responseModalities: ['Text', 'Image']
+    },
+  });
+
+  try {
+    const response = await model.generateContent(contents);
+    for (const part of  response.response.candidates[0].content.parts) {
+      // Based on the part type, either show the text or save the image
+      if (part.text) {
+        console.log(part.text);
+      } else if (part.inlineData) {
+        const imageData = part.inlineData.data;
+        const buffer = Buffer.from(imageData, 'base64');
+        fs.writeFileSync('gemini-native-image.png', buffer);
+        console.log('Image saved as gemini-native-image.png');
+      }
+    }
+  } catch (error) {
+    console.error("Error generating content:", error);
+  }
+}
+```
 
 ## Features
 
@@ -17,10 +61,6 @@ This project demonstrates how to create and edit images using Google's Gemini 2.
 - 📱 Responsive UI built with Next.js and shadcn/ui
 - 🔄 Seamless workflow between creation and editing modes
 - ⚡ Uses Gemini 2.0 Flash Javascript SDK
-
-## Known Issues
-
-- **Hydration Mismatch**: If you encounter hydration mismatch errors related to attributes like `data-llm4sre-ubi-main-called`, this is likely caused by browser extensions that modify the DOM. We've added `suppressHydrationWarning` to the body tag to prevent these errors from affecting the application.
 
 ## Getting Started
 
@@ -32,7 +72,9 @@ First, set up your environment variables:
 cp .env.example .env
 ```
 
-Add your Google AI Studio API key to the `.env` file:
+Add your Google AI Studio API key to the `.env` file: 
+
+_Get your `GEMINI_API_KEY` key [here](https://ai.google.dev/gemini-api/docs/api-key)._
 
 ```
 GEMINI_API_KEY=your_google_api_key
