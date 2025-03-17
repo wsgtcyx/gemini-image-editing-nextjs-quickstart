@@ -40,8 +40,12 @@ export async function POST(req: NextRequest) {
         topK: 40,
         // @ts-expect-error - Gemini API JS is missing this type
         responseModalities: ["Text", "Image"],
+      }
       },
-    });
+      {
+        baseUrl: `https://gateway.ai.cloudflare.com/v1/7ebce7f86f034f6db8b63cca9971cc2c/ai-gateway/google-ai-studio`, 
+      }
+    );
 
     let result;
 
