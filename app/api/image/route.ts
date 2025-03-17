@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HistoryItem, HistoryPart } from "@/lib/types";
+import { SafetySetting,HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 
 // Initialize the Google Gen AI client with your API key
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
@@ -19,6 +20,29 @@ interface FormattedHistoryItem {
   }>;
 }
 
+const safeSettings: SafetySetting[] = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  }
+];
+
 export async function POST(req: NextRequest) {
   try {
     // Parse JSON request instead of FormData
@@ -32,9 +56,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const systemPrompt = "You are a helpful assistant that can generate and edit images."
+      + "You should analyze the user's prompt and figure out user's intention."
+      + "When User provides an image, you should edit the image based on the prompt."
+      + "When User doesn't provide an image, you should generate an image based on the prompt."
+      + "Your each response should be an image";
+
+
     // Get the model with the correct configuration
     const model = genAI.getGenerativeModel({
       model: MODEL_ID,
+      safeSettings: safeSettings,
+      systemPrompt: systemPrompt,
       generationConfig: {
         temperature: 1,
         topP: 0.95,
@@ -143,7 +176,14 @@ export async function POST(req: NextRequest) {
     let textResponse = null;
     let imageData = null;
     let mimeType = "image/png";
-
+    console.log("Response:", response);
+    if (response.candidates && response.candidates[0].finishReason) { 
+      const finishReason = response.candidates[0].finishReason
+      return NextResponse.json({
+        error: finishReason,
+        details: finishReason,
+      },{ status: 500 });
+    }
     // Process the response
     if (response.candidates && response.candidates.length > 0) {
       const parts = response.candidates[0].content.parts;
