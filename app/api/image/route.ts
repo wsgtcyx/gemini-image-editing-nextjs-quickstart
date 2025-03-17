@@ -176,8 +176,7 @@ export async function POST(req: NextRequest) {
     let textResponse = null;
     let imageData = null;
     let mimeType = "image/png";
-    console.log("Response:", response);
-    if (response.candidates && response.candidates[0].finishReason) { 
+    if (response.candidates && response.candidates[0].finishReason != "STOP") { 
       const finishReason = response.candidates[0].finishReason
       return NextResponse.json({
         error: finishReason,
