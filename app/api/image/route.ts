@@ -5,6 +5,7 @@ import { HistoryItem, HistoryPart } from "@/lib/types";
 // Initialize the Google Gen AI client with your API key
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const GEMINI_ENDPOINT = process.env.GEMINI_ENDPOINT!;
 
 // Define the model ID for Gemini 2.0 Flash experimental
 const MODEL_ID = "gemini-2.0-flash-exp";
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       }
       },
       {
-        baseUrl: `https://gateway.ai.cloudflare.com/v1/7ebce7f86f034f6db8b63cca9971cc2c/ai-gateway/google-ai-studio`, 
+        baseUrl: GEMINI_ENDPOINT, 
       }
     );
 
