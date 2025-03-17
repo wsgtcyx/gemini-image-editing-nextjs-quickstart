@@ -6,7 +6,6 @@ import { ImageResultDisplay } from "@/components/ImageResultDisplay";
 import { ImageIcon, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoryItem } from "@/lib/types";
-import { toast } from "sonner";
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
