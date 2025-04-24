@@ -1,51 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { fal } from "@fal-ai/client";
 import { HistoryItem, HistoryPart } from "@/lib/types";
-import { SafetySetting,HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 
-// Initialize the Google Gen AI client with your API key
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const GEMINI_ENDPOINT = process.env.GEMINI_ENDPOINT!;
+// Initialize the fal client with your API key
+const FAL_API_KEY = process.env.FAL_API_KEY || "";
 
-// Define the model ID for Gemini 2.0 Flash experimental
-const MODEL_ID = "gemini-2.0-flash-exp";
+// Configure fal client with API key
+fal.config({
+  credentials: FAL_API_KEY,
+});
 
-// Define interface for the formatted history item
-interface FormattedHistoryItem {
-  role: "user" | "model";
-  parts: Array<{
-    text?: string;
-    inlineData?: { data: string; mimeType: string };
-  }>;
-}
-
-const safeSettings: SafetySetting[] = [
-  {
-    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  }
-];
+// Model endpoints - note that according to documentation these might be deprecated
+const TEXT_TO_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/text-to-image";
+const EDIT_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/edit-image";
 
 export async function POST(req: NextRequest) {
   try {
-    // Parse JSON request instead of FormData
+    // Parse JSON request
     const requestData = await req.json();
     const { prompt, image: inputImage, history } = requestData;
 
@@ -56,80 +27,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const systemPrompt = "You are a helpful assistant that can generate and edit images."
-      + "You should analyze the user's prompt and figure out user's intention."
-      + "When User provides an image, you should edit the image based on the prompt."
-      + "When User doesn't provide an image, you should generate an image based on the prompt."
-      + "Your each response should be an image";
-
-
-    // Get the model with the correct configuration
-    const model = genAI.getGenerativeModel({
-      model: MODEL_ID,
-      safeSettings: safeSettings,
-      systemPrompt: systemPrompt,
-      generationConfig: {
-        temperature: 1,
-        topP: 0.95,
-        topK: 40,
-        // @ts-expect-error - Gemini API JS is missing this type
-        responseModalities: ["Text", "Image"],
-      }
-      },
-      {
-        baseUrl: GEMINI_ENDPOINT, 
-      }
-    );
-
-    let result;
-
+    // Determine if this is an image generation or editing request
+    const isImageEdit = !!inputImage;
+    
     try {
-      // Convert history to the format expected by Gemini API
-      const formattedHistory =
-        history && history.length > 0
-          ? history
-              .map((item: HistoryItem) => {
-                return {
-                  role: item.role,
-                  parts: item.parts
-                    .map((part: HistoryPart) => {
-                      if (part.text) {
-                        return { text: part.text };
-                      }
-                      if (part.image && item.role === "user") {
-                        const imgParts = part.image.split(",");
-                        if (imgParts.length > 1) {
-                          return {
-                            inlineData: {
-                              data: imgParts[1],
-                              mimeType: part.image.includes("image/png")
-                                ? "image/png"
-                                : "image/jpeg",
-                            },
-                          };
-                        }
-                      }
-                      return { text: "" };
-                    })
-                    .filter((part) => Object.keys(part).length > 0), // Remove empty parts
-                };
-              })
-              .filter((item: FormattedHistoryItem) => item.parts.length > 0) // Remove items with no parts
-          : [];
-
-      // Create a chat session with the formatted history
-      const chat = model.startChat({
-        history: formattedHistory,
-      });
-
-      // Prepare the current message parts
-      const messageParts = [];
-
-      // Add the text prompt
-      messageParts.push({ text: prompt });
-
-      // Add the image if provided
-      if (inputImage) {
+      let result;
+      
+      if (isImageEdit) {
         // For image editing
         console.log("Processing image edit request");
 
@@ -138,83 +42,85 @@ export async function POST(req: NextRequest) {
           throw new Error("Invalid image data URL format");
         }
 
-        const imageParts = inputImage.split(",");
-        if (imageParts.length < 2) {
-          throw new Error("Invalid image data URL format");
+        // Call fal.ai image edit API with the edit-image endpoint
+        try {
+          result = await fal.subscribe(EDIT_IMAGE_ENDPOINT, {
+            input: {
+              prompt: prompt,
+              image_urls: [inputImage], // Use the full data URL
+              num_images: 1,
+              quality: "low",
+              image_size: "1024x1024"
+            },
+            logs: true,
+            onQueueUpdate: (update) => {
+              if (update.status === "IN_PROGRESS") {
+                console.log("Processing:", update.logs);
+              }
+            },
+          });
+        } catch (error) {
+          console.error("Error accessing fal.ai API:", error);
+          // Check if the error is related to the endpoint being deprecated
+          if (error.message?.includes("deprecated") || error.message?.includes("no longer supported")) {
+            throw new Error("The image editing API endpoint is deprecated. Please update to a supported endpoint.");
+          }
+          throw error;
         }
-
-        const base64Image = imageParts[1];
-        const mimeType = inputImage.includes("image/png")
-          ? "image/png"
-          : "image/jpeg";
-        console.log(
-          "Base64 image length:",
-          base64Image.length,
-          "MIME type:",
-          mimeType
-        );
-
-        // Add the image to message parts
-        messageParts.push({
-          inlineData: {
-            data: base64Image,
-            mimeType: mimeType,
-          },
-        });
+      } else {
+        // For image generation (text-to-image)
+        console.log("Processing text-to-image request");
+        
+        // Call fal.ai text to image API
+        try {
+          result = await fal.subscribe(TEXT_TO_IMAGE_ENDPOINT, {
+            input: {
+              prompt: prompt,
+              num_images: 1,
+              quality: "low",
+              image_size: "1024x1024"
+            },
+            logs: true,
+            onQueueUpdate: (update) => {
+              if (update.status === "IN_PROGRESS") {
+                console.log("Processing:", update.logs);
+              }
+            },
+          });
+        } catch (error) {
+          console.error("Error accessing fal.ai API:", error);
+          // Check if the error is related to the endpoint being deprecated
+          if (error.message?.includes("deprecated") || error.message?.includes("no longer supported")) {
+            throw new Error("The image generation API endpoint is deprecated. Please update to a supported endpoint.");
+          }
+          throw error;
+        }
       }
 
-      // Send the message to the chat
-      console.log("Sending message with", messageParts.length, "parts");
-      result = await chat.sendMessage(messageParts);
+      console.log("Response received:", result);
+
+      // Extract the image URL from the response
+      if (result && result.data && result.data.images && result.data.images.length > 0) {
+        const imageUrl = result.data.images[0].url;
+        
+        // Fetch the image and convert to base64
+        const imageResponse = await fetch(imageUrl);
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const base64Image = Buffer.from(arrayBuffer).toString('base64');
+        const mimeType = imageResponse.headers.get('content-type') || 'image/png';
+        
+        // Return the base64 image as JSON
+        return NextResponse.json({
+          image: `data:${mimeType};base64,${base64Image}`,
+          description: null, // fal.ai doesn't return a text description
+        });
+      } else {
+        throw new Error("No image data in response");
+      }
     } catch (error) {
-      console.error("Error in chat.sendMessage:", error);
+      console.error("Error in fal.ai API call:", error);
       throw error;
     }
-
-    const response = result.response;
-
-    let textResponse = null;
-    let imageData = null;
-    let mimeType = "image/png";
-    if (response.candidates && response.candidates[0].finishReason != "STOP") { 
-      const finishReason = response.candidates[0].finishReason
-      return NextResponse.json({
-        error: finishReason,
-        details: finishReason,
-      },{ status: 500 });
-    }
-    // Process the response
-    if (response.candidates && response.candidates.length > 0) {
-      const parts = response.candidates[0].content.parts;
-      console.log("Number of parts in response:", parts.length);
-
-      for (const part of parts) {
-        if ("inlineData" in part && part.inlineData) {
-          // Get the image data
-          imageData = part.inlineData.data;
-          mimeType = part.inlineData.mimeType || "image/png";
-          console.log(
-            "Image data received, length:",
-            imageData.length,
-            "MIME type:",
-            mimeType
-          );
-        } else if ("text" in part && part.text) {
-          // Store the text
-          textResponse = part.text;
-          console.log(
-            "Text response received:",
-            textResponse.substring(0, 50) + "..."
-          );
-        }
-      }
-    }
-
-    // Return just the base64 image and description as JSON
-    return NextResponse.json({
-      image: imageData ? `data:${mimeType};base64,${imageData}` : null,
-      description: textResponse,
-    });
   } catch (error) {
     console.error("Error generating image:", error);
     return NextResponse.json(
