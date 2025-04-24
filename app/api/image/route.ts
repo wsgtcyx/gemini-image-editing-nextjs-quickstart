@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fal } from "@fal-ai/client";
-import { HistoryItem, HistoryPart } from "@/lib/types";
 
 // Initialize the fal client with your API key
 const FAL_API_KEY = process.env.FAL_API_KEY || "";
@@ -18,7 +17,7 @@ export async function POST(req: NextRequest) {
   try {
     // Parse JSON request
     const requestData = await req.json();
-    const { prompt, image: inputImage, history } = requestData;
+    const { prompt, image: inputImage } = requestData;
 
     if (!prompt) {
       return NextResponse.json(
