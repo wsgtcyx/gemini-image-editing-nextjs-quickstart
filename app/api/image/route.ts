@@ -13,11 +13,14 @@ fal.config({
 const TEXT_TO_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/text-to-image";
 const EDIT_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/edit-image";
 
+// Valid quality options
+type Quality = "high" | "medium" | "low";
+
 export async function POST(req: NextRequest) {
   try {
     // Parse JSON request
     const requestData = await req.json();
-    const { prompt, image: inputImage } = requestData;
+    const { prompt, image: inputImage, quality = "medium" } = requestData;
 
     if (!prompt) {
       return NextResponse.json(
@@ -25,6 +28,13 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate quality parameter
+    const validQuality: Quality = ["high", "medium", "low"].includes(quality) 
+      ? quality as Quality 
+      : "medium";
+    
+    console.log(`Using quality setting: ${validQuality}`);
 
     // Determine if this is an image generation or editing request
     const isImageEdit = !!inputImage;
@@ -48,7 +58,7 @@ export async function POST(req: NextRequest) {
               prompt: prompt,
               image_urls: [inputImage], // Use the full data URL
               num_images: 1,
-              quality: "low",
+              quality: validQuality,
               image_size: "1024x1024"
             },
             logs: true,
@@ -76,7 +86,7 @@ export async function POST(req: NextRequest) {
             input: {
               prompt: prompt,
               num_images: 1,
-              quality: "low",
+              quality: validQuality,
               image_size: "1024x1024"
             },
             logs: true,

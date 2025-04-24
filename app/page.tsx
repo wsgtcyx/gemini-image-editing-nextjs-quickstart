@@ -6,6 +6,11 @@ import { ImageResultDisplay } from "@/components/ImageResultDisplay";
 import { ImageIcon, Wand2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoryItem } from "@/lib/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
+// Quality options
+type Quality = "high" | "medium" | "low";
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
@@ -14,9 +19,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [quality, setQuality] = useState<Quality>("medium");
 
   const handleImageSelect = (imageData: string) => {
     setImage(imageData || null);
+  };
+
+  const handleQualityChange = (value: Quality) => {
+    setQuality(value);
   };
 
   const handlePromptSubmit = async (prompt: string) => {
@@ -32,6 +42,7 @@ export default function Home() {
         prompt,
         image: imageToEdit,
         history: history.length > 0 ? history : undefined,
+        quality, // Include the selected quality
       };
 
       const response = await fetch("/api/image", {
@@ -126,6 +137,22 @@ export default function Home() {
                 onImageSelect={handleImageSelect}
                 currentImage={currentImage}
               />
+              
+              {/* Quality Selector */}
+              <div className="grid w-full max-w-sm items-center gap-1.5 mb-4">
+                <Label htmlFor="quality">Image Quality</Label>
+                <Select value={quality} onValueChange={(value) => handleQualityChange(value as Quality)}>
+                  <SelectTrigger id="quality">
+                    <SelectValue placeholder="Select quality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High (Slower)</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low (Faster)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <ImagePromptInput
                 onSubmit={handlePromptSubmit}
                 isEditing={isEditing}
@@ -150,6 +177,22 @@ export default function Home() {
                 onReset={handleReset}
                 conversationHistory={history}
               />
+              
+              {/* Quality Selector */}
+              <div className="grid w-full max-w-sm items-center gap-1.5 mb-4">
+                <Label htmlFor="quality">Image Quality</Label>
+                <Select value={quality} onValueChange={(value) => handleQualityChange(value as Quality)}>
+                  <SelectTrigger id="quality">
+                    <SelectValue placeholder="Select quality" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">High (Slower)</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low (Faster)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <ImagePromptInput
                 onSubmit={handlePromptSubmit}
                 isEditing={true}
