@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Wand2 } from "lucide-react";
-import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 
 interface ImagePromptInputProps {
   onSubmit: (prompt: string) => void;
@@ -18,7 +18,8 @@ export function ImagePromptInput({
 }: ImagePromptInputProps) {
   const [prompt, setPrompt] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (prompt.trim()) {
       onSubmit(prompt.trim());
       setPrompt("");
@@ -35,7 +36,7 @@ export function ImagePromptInput({
         </p>
       </div>
 
-      <Input
+      <Textarea
         id="prompt"
         className="border-secondary resize-none"
         placeholder={
@@ -45,6 +46,7 @@ export function ImagePromptInput({
         }
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
+        rows={6}
       />
 
       <Button
