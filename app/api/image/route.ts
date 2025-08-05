@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
               // num_images: 1,
               // quality: validQuality,
               image_size: "square_hd",
-              guidance_scale: "10",
+              guidance_scale: "4",
             },
             logs: true,
             onQueueUpdate: (update) => {
