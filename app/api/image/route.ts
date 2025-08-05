@@ -11,7 +11,7 @@ fal.config({
 
 // Model endpoints - note that according to documentation these might be deprecated
 const TEXT_TO_IMAGE_ENDPOINT = "fal-ai/qwen-image";
-const EDIT_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/edit-image";
+const EDIT_IMAGE_ENDPOINT = "fal-ai/flux-pro/kontext";
 
 // Valid quality options
 type Quality = "high" | "medium" | "low";
@@ -56,10 +56,10 @@ export async function POST(req: NextRequest) {
           result = await fal.subscribe(EDIT_IMAGE_ENDPOINT, {
             input: {
               prompt: prompt,
-              image_urls: [inputImage], // Use the full data URL
+              image_url: inputImage, // Use the full data URL
               num_images: 1,
-              quality: validQuality,
-              image_size: "1024x1024"
+              // quality: validQuality,
+              image_size: "square_hd"
             },
             logs: true,
             onQueueUpdate: (update) => {
