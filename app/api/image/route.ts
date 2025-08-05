@@ -10,7 +10,7 @@ fal.config({
 });
 
 // Model endpoints - note that according to documentation these might be deprecated
-const TEXT_TO_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/text-to-image";
+const TEXT_TO_IMAGE_ENDPOINT = "fal-ai/qwen-image";
 const EDIT_IMAGE_ENDPOINT = "fal-ai/gpt-image-1/edit-image";
 
 // Valid quality options
@@ -85,9 +85,10 @@ export async function POST(req: NextRequest) {
           result = await fal.subscribe(TEXT_TO_IMAGE_ENDPOINT, {
             input: {
               prompt: prompt,
-              num_images: 1,
-              quality: validQuality,
-              image_size: "1024x1024"
+              // num_images: 1,
+              // quality: validQuality,
+              image_size: "square_hd",
+              guidance_scale: "10",
             },
             logs: true,
             onQueueUpdate: (update) => {
